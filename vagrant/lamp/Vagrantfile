@@ -1,0 +1,35 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+DIR_PROJETO = "~/Arquivos/Projetos" # Diretório onde estão os códigos do projeto PHP/HTML
+QTD_RAM_VM = "512" # Quantidade de memória RAM dedicada para a máquina virtual
+IP_VM = "192.168.51.2" # Endereço IP da máquina virtual
+HOSTNAME_VM = "lamp" # Nome de host da VM
+NOME_VM = "lamp.dev" # Nome da VM no gerenciador de VMs, neste caso, o VirtualBox
+DESABILITAR_SSH_KEY = true # Caso tenha problemas com autenticação ssh, deixe a variável DESABILITAR_SSH_KEY com o valor true
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "debian/jessie64"
+
+  config.vm.provider "virtualbox" do |vb|
+    vb.name = NOME_VM
+    vb.memory = QTD_RAM_VM
+  end
+
+  config.vm.network "private_network", ip: IP_VM
+
+  if DESABILITAR_SSH_KEY
+    config.ssh.username = "vagrant"
+    config.ssh.password = "vagrant"
+    config.ssh.insert_key = false
+  end
+
+  config.ssh.shell = "bash -c 'BASH_ENV=/etc/profile exec bash'"
+  config.vm.network :forwarded_port, guest: 3306, host: 3306, id: "mysql"
+  config.vm.network :forwarded_port, guest: 80, host: 8080, id: "www"
+  config.vm.hostname = HOSTNAME_VM
+  config.hostsupdater.aliases = [HOSTNAME_VM]
+  config.vm.synced_folder ".", "/vagrant", disabled: true
+  config.vm.synced_folder DIR_PROJETO, "/var/www/html", create: true, :group => "www-data", :mount_options => ['dmode=775','fmode=774']
+  config.vm.provision "shell", path: "./config/provision.sh"
+end
